@@ -34,12 +34,17 @@ import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
 
+import org.apache.commons.httpclient.Cookie;
 import org.apache.commons.httpclient.Credentials;
 import org.apache.commons.httpclient.HttpClient;
 import org.apache.commons.httpclient.HttpConnectionManager;
+import org.apache.commons.httpclient.HttpException;
+import org.apache.commons.httpclient.HttpState;
 import org.apache.commons.httpclient.HttpStatus;
+import org.apache.commons.httpclient.NameValuePair;
 import org.apache.commons.httpclient.UsernamePasswordCredentials;
 import org.apache.commons.httpclient.auth.AuthScope;
+import org.apache.commons.httpclient.cookie.CookiePolicy;
 import org.apache.commons.httpclient.methods.DeleteMethod;
 import org.apache.commons.httpclient.methods.EntityEnclosingMethod;
 import org.apache.commons.httpclient.methods.FileRequestEntity;
@@ -440,13 +445,58 @@ public class HTTPUtils {
         throws MalformedURLException {
         URL u = new URL(url);
         if (username != null && pw != null) {
-            Credentials defaultcreds = new UsernamePasswordCredentials(username, pw);
-            client.getState().setCredentials(new AuthScope(u.getHost(), u.getPort()), defaultcreds);
-            client.getParams().setAuthenticationPreemptive(true); // GS2 by
-                                                                  // default
-                                                                  // always
-                                                                  // requires
-                                                                  // authentication
+        	String formBasedAuthUrl = System.getProperty("GEOSERVER_MANAGER_FORM_AUTH_URL");
+        	if(formBasedAuthUrl == null){
+        		Credentials defaultcreds = new UsernamePasswordCredentials(username, pw);
+                client.getState().setCredentials(new AuthScope(u.getHost(), u.getPort()), defaultcreds);
+                client.getParams().setAuthenticationPreemptive(true); // GS2 by
+                                                                      // default
+                                                                      // always
+                                                                      // requires
+                                                                      // authentication
+        	} else {
+				try {
+					HttpState initialState = new HttpState();
+					client.setState(initialState);
+					client.getParams().setCookiePolicy(CookiePolicy.RFC_2109);
+					GetMethod httpget = new GetMethod(formBasedAuthUrl);
+					int result = client.executeMethod(httpget);
+					LOGGER.info("Form based auth response status code: " + result);
+					Cookie[] cookies = client.getState().getCookies();
+					if (LOGGER.isDebugEnabled())
+	                    LOGGER.debug(httpget.getResponseBodyAsString());
+					LOGGER.info(httpget.getResponseBodyAsString());
+					httpget.releaseConnection();
+
+					PostMethod postMethod = new PostMethod(formBasedAuthUrl + "j_security_check"){
+					    @Override
+					    public boolean getFollowRedirects()
+					    {
+					        return true;
+					    }
+					};
+					NameValuePair[] postData = new NameValuePair[2];
+					postData[0] = new NameValuePair("j_username", username);
+					postData[1] = new NameValuePair("j_password", pw);
+					postMethod.addParameters(postData);
+					postMethod.addRequestHeader("Referer", formBasedAuthUrl);
+
+					for (int i = 0; i < cookies.length; i++) {
+						initialState.addCookie(cookies[i]);
+					}
+					client.setState(initialState);
+					int postResult = client.executeMethod(postMethod);
+					LOGGER.info("Form based auth post response status code: " + postResult);
+					LOGGER.info(postMethod.getResponseBodyAsString());
+					if (LOGGER.isDebugEnabled())
+	                    LOGGER.debug(postMethod.getResponseBodyAsString());
+					postMethod.releaseConnection();
+				} catch (HttpException httpe) {
+					LOGGER.error(httpe.getLocalizedMessage(), httpe);
+				} catch (IOException ioe) {
+					LOGGER.error(ioe.getLocalizedMessage(), ioe);
+				}
+			}
         } else {
             if (LOGGER.isDebugEnabled()) {
                 LOGGER.debug("Not setting credentials to access to " + url);
