@@ -465,7 +465,6 @@ public class HTTPUtils {
 					Cookie[] cookies = client.getState().getCookies();
 					if (LOGGER.isDebugEnabled())
 	                    LOGGER.debug(httpget.getResponseBodyAsString());
-					LOGGER.info(httpget.getResponseBodyAsString());
 					httpget.releaseConnection();
 
 					PostMethod postMethod = new PostMethod(formBasedAuthUrl + "j_security_check"){
@@ -487,7 +486,6 @@ public class HTTPUtils {
 					client.setState(initialState);
 					int postResult = client.executeMethod(postMethod);
 					LOGGER.info("Form based auth post response status code: " + postResult);
-					LOGGER.info(postMethod.getResponseBodyAsString());
 					if (LOGGER.isDebugEnabled())
 	                    LOGGER.debug(postMethod.getResponseBodyAsString());
 					postMethod.releaseConnection();
