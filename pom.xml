@@ -20,7 +20,7 @@
 
 	<groupId>it.geosolutions</groupId>
 	<artifactId>geoserver-manager</artifactId>
-	<version>1.5-SNAPSHOT</version>
+	<version>1.5-ML</version>
 
 	<packaging>jar</packaging>
 
@@ -236,11 +236,7 @@
 			<artifactId>slf4j-api</artifactId>
 			<version>${slf4j.version}</version>
 		</dependency>
-		<dependency>
-			<groupId>org.slf4j</groupId>
-			<artifactId>jcl-over-slf4j</artifactId>
-			<version>${slf4j.version}</version>
-		</dependency>
+
 		<!-- commons-logging can be rather simply and conveniently excluded as 
 			a dependency by declaring it in the provided scope within the pom.xml file 
 			of your project. The actual commons-logging classes would be provided by 
